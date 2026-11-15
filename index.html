@@ -41,18 +41,24 @@ nav button{flex:1;background:none;color:var(--sb);border-radius:0;padding:12px 2
 #ts{display:none;position:fixed;left:12px;right:12px;bottom:calc(66px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);border-radius:12px;padding:10px 12px;z-index:8;font-size:13px;align-items:center;gap:8px}#ts.on{display:flex}
 #ts button{padding:6px 10px;font-size:12px;background:var(--bg);color:var(--tx)}
 svg{width:100%;height:auto;display:block}
+.wb{position:relative;text-align:center;color:#fff;padding:20px}.wb h1{margin:8px 0;color:#fff}.wb p{margin:4px 0}
+#ov{display:none;position:fixed;inset:0;z-index:20;background:rgba(8,12,28,.93);align-items:center;justify-content:center;overflow:hidden}#ov.on{display:flex}
+#ov i{position:absolute;top:-20px;width:10px;height:16px;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(115vh) rotate(720deg)}}
+@media(prefers-reduced-motion:reduce){#ov i{display:none}}
 </style></head><body>
-<div id="app"></div><div id="ts"></div><div id="md"></div>
+<div id="app"></div><div id="ts"></div><div id="md"></div><div id="ov"></div>
 <nav id="nv"></nav>
 <script>
 const K='liferpg1',$=q=>document.querySelector(q),esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9),p2=n=>String(n).padStart(2,'0'),dstr=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()),today=()=>dstr(new Date());
 const COL=['#3e8ef7','#e5484d','#e5a50a','#30a46c','#a855f7','#06b6d4','#f97316','#ec4899'];
 function def(){const n=[['知識','本を読んだ|資格・語学の勉強|記事や動画で学んだ|新しいことを調べた'],['体力','筋トレ|ジムに行った|ウォーキング・ランニング|ストレッチ|しっかり睡眠'],['財産','家計簿をつけた|貯金した|良い買い物をした|良い経験をした'],['コミュニケーション','誰かと話した|感謝を伝えた|家族・友人に連絡した|人と会った'],['趣味','趣味の時間をとった|料理をした|創作・制作をした|新しいことに挑戦した']];
-const s={v:1,stats:[],tasks:[],logs:[]};n.forEach(([a,t],i)=>{const id='s'+i;s.stats.push({id,name:a,color:COL[i],hide:false});t.split('|').forEach(x=>s.tasks.push({id:uid(),sid:id,name:x,pt:1}))});return s}
+const s={v:1,stats:[],tasks:[],logs:[],bosses:[],snd:true};n.forEach(([a,t],i)=>{const id='s'+i;s.stats.push({id,name:a,color:COL[i],hide:false});t.split('|').forEach(x=>s.tasks.push({id:uid(),sid:id,name:x,pt:1}))});return s}
 let S=null,ok=true,tab='st',edit=false,fil=null,tdate='',tmr,pend=null;
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S||!Array.isArray(S.stats)||!Array.isArray(S.logs)||!Array.isArray(S.tasks))S=def();
+S.bosses=S.bosses||[];if(S.snd===undefined)S.snd=true;
 function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){ok=false}}
 try{localStorage.setItem(K+'t','1')}catch(e){ok=false}
 const thr=L=>5*L*(L-1)/2,lv=t=>{let L=1;while(t>=thr(L+1))L++;return L};
@@ -80,7 +86,7 @@ const mx=Math.max(3,...sums.map(a=>a.reduce((x,y)=>x+y,0))),W=320,H=110,bw=W/14;
 sums.forEach((a,i)=>{let y=H;a.forEach((x,j)=>{const h=x/mx*(H-6);y-=h;g+=`<rect x="${i*bw+3}" y="${y}" width="${bw-6}" height="${h}" fill="${v[j].color}"/>`});g+=`<text x="${i*bw+bw/2}" y="${H+12}" font-size="8" text-anchor="middle" fill="var(--sb)">${ds[i].slice(8)}</text>`});
 return`<svg viewBox="0 0 ${W} ${H+16}">${g}</svg>`}
 function vSt(){const t=totals(),td=S.logs.filter(l=>l.date===today()).reduce((a,l)=>a+l.pt,0),r=radar();
-return`<h1>ステータス</h1><p class="sub">今日 +${td} pt ／ 記録 ${S.logs.length} 件</p>`+(r?`<div class="card">${r}</div>`:'')+vis().map(s=>{const x=t[s.id],L=lv(x),a=thr(L),b=thr(L+1);return`<div class="card"><div class="row"><span class="dot" style="background:${s.color}"></span><b>${esc(s.name)}</b><span class="sp lv" style="color:${s.color}">Lv ${L}</span></div><div class="bar"><i style="width:${(x-a)/(b-a)*100}%;background:${s.color}"></i></div><div class="sub">累計 ${x} pt ／ 次のLvまで あと ${b-x} pt</div></div>`}).join('')}
+return`<h1>ステータス</h1><p class="sub">今日 +${td} pt ／ 記録 ${S.logs.length} 件</p>`+(r?`<div class="card">${r}</div>`:'')+strip()+vis().map(s=>{const x=t[s.id],L=lv(x),a=thr(L),b=thr(L+1);return`<div class="card"><div class="row"><span class="dot" style="background:${s.color}"></span><b>${esc(s.name)}</b><span class="sp lv" style="color:${s.color}">Lv ${L}</span></div><div class="bar"><i style="width:${(x-a)/(b-a)*100}%;background:${s.color}"></i></div><div class="sub">累計 ${x} pt ／ 次のLvまで あと ${b-x} pt</div></div>`}).join('')}
 function vTk(){const d=tdate||today();return`<h1>成長の素</h1><div class="card"><label style="margin:0">記録する日<input type="date" id="td" value="${d}" max="${today()}"></label></div><button class="ghost" data-a="eT" style="width:100%;margin:2px 0 6px">${edit?'編集を終える':'成長の素を編集する'}</button>`+(d!==today()?'<p class="warn">過去の日付で記録されます</p>':'')+vis().map(s=>`<h2 style="color:${s.color}">${esc(s.name)}</h2><div class="grid">${S.tasks.filter(t=>t.sid===s.id).map(t=>`<button class="tk" style="--c:${s.color}" data-a="${edit?'et':'do'}" data-id="${t.id}">${esc(t.name)}<small>${edit?'編集 +':'+'}${t.pt}</small></button>`).join('')}${edit?`<button class="tk add" style="--c:${s.color}" data-a="nt" data-id="${s.id}">＋ 追加</button>`:''}</div>`).join('')}
 function vHs(){const u=lvups();let h='<h1>履歴・グラフ</h1><div class="card"><h3>累計ポイントの推移</h3>'+line()+'</div><div class="card"><h3>日別の獲得(直近14日)</h3>'+bars()+'</div>';
 h+=`<div class="chips"><button class="${fil?'ghost':''}" data-a="fl" data-id="">全部</button>${vis().map(s=>`<button class="${fil===s.id?'':'ghost'}" data-a="fl" data-id="${s.id}">${esc(s.name)}</button>`).join('')}</div><div class="card">`;
@@ -89,29 +95,52 @@ L.forEach(l=>{const s=stat(l.sid)||{name:'(削除済み)',color:'#888'};if(l.dat
 h+=`<div class="it" data-a="eh" data-id="${l.id}"><span class="dot" style="background:${s.color}"></span><div><b>${esc(l.name)}</b><div class="sub">${esc(s.name)}${l.memo?' ／ '+esc(l.memo):''}</div></div><span class="pt">+${l.pt}</span>${u[l.id]?`<span class="up">Lv${u[l.id]}</span>`:''}</div>`});
 return h+'</div>'}
 function vSg(){return`<h1>設定</h1>${ok?'':'<p class="warn">この環境では自動保存できません。下のバックアップをこまめにコピーしてください。</p>'}<div class="card"><h3>ステータス</h3>${S.stats.map(s=>`<div class="row" style="margin:6px 0"><span class="dot" style="background:${s.color}"></span><input data-n="${s.id}" value="${esc(s.name)}"><label style="margin:0;white-space:nowrap"><input type="checkbox" data-h="${s.id}" ${s.hide?'':'checked'}> 表示</label></div>`).join('')}<div class="row" style="margin-top:10px"><input id="ns" placeholder="新しいステータス名"><button data-a="aS" style="white-space:nowrap">追加</button></div><p class="sub">追加しても、他のステータスと履歴はそのまま残ります。非表示にしても記録は消えません。</p></div>
-<div class="card"><h3>バックアップ</h3><textarea id="bk" rows="6" placeholder="書き出し→コピーして保存。読み込み→ここに貼り付け"></textarea><div class="row"><button data-a="ex">書き出し(コピー)</button><button class="ghost" data-a="im">読み込み</button></div><p class="sub" id="bm">書き出したデータをClaudeに貼れば、記録の追加や整理も頼めます。</p></div>`}
-function render(){$('#app').innerHTML=({st:vSt,tk:vTk,hs:vHs,sg:vSg})[tab]();$('#nv').innerHTML=[['st','ステータス'],['tk','成長の素'],['hs','履歴'],['sg','設定']].map(([k,n])=>`<button class="${tab===k?'on':''}" data-a="tb" data-id="${k}">${n}</button>`).join('');if(!ok&&tab!=='sg')$('#app').insertAdjacentHTML('afterbegin','<p class="warn">自動保存できない環境です。設定からバックアップしてください。</p>')}
+<div class="card"><label style="margin:0;display:flex;gap:8px;align-items:center"><input type="checkbox" data-sn ${S.snd?'checked':''}> ボス討伐時のファンファーレ音</label><p class="sub">iPhoneのマナーモード中は鳴りません。</p><button class="ghost" data-a="tsn">試し聴き</button></div><div class="card"><h3>バックアップ</h3><textarea id="bk" rows="6" placeholder="書き出し→コピーして保存。読み込み→ここに貼り付け"></textarea><div class="row"><button data-a="ex">書き出し(コピー)</button><button class="ghost" data-a="im">読み込み</button></div><p class="sub" id="bm">書き出したデータをClaudeに貼れば、記録の追加や整理も頼めます。</p></div>`}
+const AC=window.AudioContext||window.webkitAudioContext;let ax;
+function snd(){try{if(!S.snd)return;ax=ax||new AC();if(ax.state==='suspended')ax.resume();
+[[523,0],[659,.14],[784,.28],[1047,.42],[784,.62],[1047,.76],[1319,.92],[1047,.92],[784,.92]].forEach(([f,t])=>{const o=ax.createOscillator(),g=ax.createGain(),s=ax.currentTime+t,d=t>=.9?1.2:.2;o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.2,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.connect(g);g.connect(ax.destination);o.start(s);o.stop(s+d+.05)})}catch(e){}}
+function bs(b){const t={};S.stats.forEach(s=>t[s.id]=0);S.logs.forEach(l=>{if(l.date<=b.date&&l.sid in t)t[l.sid]+=l.pt});
+const r=b.req.filter(q=>stat(q.sid)).map(q=>({s:stat(q.sid),lv:q.lv,cur:t[q.sid],need:thr(q.lv)})),sum=r.reduce((a,x)=>a+x.need,0),got=r.reduce((a,x)=>a+Math.min(x.cur,x.need),0);
+return{r,done:r.length>0&&r.every(x=>x.cur>=x.need),pc:sum?Math.round(got/sum*100):0,dl:Math.round((new Date(b.date+'T00:00:00')-new Date(today()+'T00:00:00'))/864e5)}}
+const act=()=>S.bosses.filter(b=>!b.won&&bs(b).dl>=0).sort((p,q)=>p.date<q.date?-1:1);
+function chk(){let w=null;S.bosses.forEach(b=>{if(!b.won&&bs(b).done){b.won=today();w=b}});if(w){save();win(w)}}
+function win(b){snd();let c='';for(let i=0;i<36;i++)c+=`<i style="left:${Math.random()*100}%;background:${COL[i%8]};animation-delay:${Math.random()*.8}s;animation-duration:${2+Math.random()*1.5}s"></i>`;
+$('#ov').innerHTML=c+`<div class="wb"><div style="font-size:48px">🏆</div><h1>BOSS 討伐！</h1><p><b>${esc(b.name)}</b></p><p style="opacity:.8">期日までにステータスを達成しました</p><br><button data-a="cv">閉じる</button></div>`;$('#ov').className='on'}
+const strip=()=>{const a=act();return a.length?'<div class="card" data-a="tb" data-id="bs" style="cursor:pointer">'+a.map(b=>{const x=bs(b);return`<div class="row" style="margin:4px 0">👹 <b>${esc(b.name)}</b><span class="sp sub">あと${x.dl}日 ・ ${x.pc}%</span></div>`}).join('')+'</div>':''};
+function bc(b){const x=bs(b);return`<div class="card" data-a="eb" data-id="${b.id}" style="cursor:pointer"><div class="row"><b>${b.won?'🏆':x.dl<0?'💀':'👹'} ${esc(b.name)}</b><span class="sp sub">${b.date} ／ ${b.won?b.won+' 討伐':x.dl<0?'期限切れ':'あと'+x.dl+'日'}</span></div>`+x.r.map(q=>`<div class="sub" style="margin-top:6px"><span style="color:${q.s.color}">●</span> ${esc(q.s.name)} Lv${lv(q.cur)} → <b>Lv${q.lv}</b> (${Math.min(q.cur,q.need)}/${q.need}pt)</div><div class="bar" style="margin:3px 0"><i style="width:${Math.min(100,q.cur/q.need*100)}%;background:${q.s.color}"></i></div>`).join('')+'</div>'}
+function vBs(){const a=act(),o=S.bosses.filter(b=>!a.includes(b)).sort((p,q)=>p.date<q.date?1:-1);
+return`<h1>ボス</h1><button data-a="nb" style="width:100%;margin:6px 0">＋ ボスを追加</button>`+(a.length?a.map(bc).join(''):'<p class="sub">挑戦中のボスはいません。資格試験や超えたい壁を、ボスとして登録しましょう。</p>')+(o.length?'<h2>討伐済み・期限切れ</h2>'+o.map(bc).join(''):'')}
+function bm(id){const b=id?S.bosses.find(x=>x.id===id):{name:'',date:'',req:[]},rq={},t=totals();b.req.forEach(q=>rq[q.sid]=q.lv);
+modal(`<h3>${id?'ボスを編集':'ボスを追加'}</h3><label>ボスの名前(例: 貿易実務検定)<input id="bn" value="${esc(b.name)}"></label><label>期日<input type="date" id="bd" value="${b.date}"></label><label>倒すために必要なステータス(目標Lv。不要な項目は空欄)</label>${vis().map(s=>`<div class="row" style="margin:4px 0;justify-content:flex-start"><span class="dot" style="background:${s.color}"></span><span style="flex:1">${esc(s.name)} <span class="sub">(今 Lv${lv(t[s.id])})</span></span><input type="number" min="2" step="1" data-bl="${s.id}" value="${rq[s.id]||''}" style="width:80px" placeholder="Lv"></div>`).join('')}<p class="warn" id="be"></p><div class="row">${id?`<button class="ghost" data-a="db" data-id="${id}">削除</button>`:'<span></span>'}<button data-a="sb" data-id="${id||''}">保存</button></div>`)}
+function render(){$('#app').innerHTML=({st:vSt,tk:vTk,bs:vBs,hs:vHs,sg:vSg})[tab]();$('#nv').innerHTML=[['st','ステータス'],['tk','成長の素'],['bs','ボス'],['hs','履歴'],['sg','設定']].map(([k,n])=>`<button class="${tab===k?'on':''}" data-a="tb" data-id="${k}">${n}</button>`).join('');if(!ok&&tab!=='sg')$('#app').insertAdjacentHTML('afterbegin','<p class="warn">自動保存できない環境です。設定からバックアップしてください。</p>')}
 function modal(h){$('#md').innerHTML='<div class="mb">'+h+'</div>';$('#md').className='on'}const cm=()=>{$('#md').className=''};
 function toast(h){const t=$('#ts');t.innerHTML=h;t.className='on';clearTimeout(tmr);tmr=setTimeout(()=>t.className='',5000)}
 function add(id){const t=S.tasks.find(x=>x.id===id);if(!t)return;const d=tdate||today(),b=lv(totals()[t.sid]||0),l={id:uid(),ts:new Date(d+'T'+new Date().toTimeString().slice(0,8)).getTime(),date:d,sid:t.sid,tid:t.id,name:t.name,pt:t.pt,memo:''};S.logs.push(l);save();const a=lv(totals()[t.sid]),s=stat(t.sid);
-toast(`<span>+${t.pt} ${esc(s.name)}${a>b?' 🎉 Lv'+a:''}</span><button class="sp" data-a="mm" data-id="${l.id}">メモ</button><button data-a="un" data-id="${l.id}">取消</button>`)}
+toast(`<span>+${t.pt} ${esc(s.name)}${a>b?' 🎉 Lv'+a:''}</span><button class="sp" data-a="mm" data-id="${l.id}">メモ</button><button data-a="un" data-id="${l.id}">取消</button>`);chk()}
 function lm(id){const l=S.logs.find(x=>x.id===id);if(!l)return;modal(`<h3>${esc(l.name)} +${l.pt}</h3><label>日付<input type="date" id="ld" value="${l.date}" max="${today()}"></label><label>メモ<textarea id="lmm" rows="4" placeholder="どんな内容でしたか？">${esc(l.memo)}</textarea></label><div class="row"><button class="ghost" data-a="dl" data-id="${id}">削除</button><button data-a="sl" data-id="${id}">保存</button></div>`)}
 function tm(id,sid){const t=id?S.tasks.find(x=>x.id===id):{name:'',pt:1,sid};modal(`<h3>${id?'成長の素を編集':'成長の素を追加'}</h3><label>名前<input id="tn" value="${esc(t.name)}"></label><label>ステータス<select id="tsd">${S.stats.map(s=>`<option value="${s.id}" ${s.id===t.sid?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><label>ポイント(過去の記録は変わりません)<input id="tp" type="number" step="1" value="${t.pt}"></label><div class="row">${id?`<button class="ghost" data-a="dt" data-id="${id}">削除</button>`:'<span></span>'}<button data-a="stk" data-id="${id||''}">保存</button></div>`)}
-document.addEventListener('click',e=>{if(e.target.id==='md')return cm();const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,id=el.dataset.id,v=q=>$(q).value;
+document.addEventListener('click',e=>{if(S.snd&&!ax){try{ax=new AC()}catch(x){}}if(e.target.id==='md')return cm();const el=e.target.closest('[data-a]');if(!el)return;const a=el.dataset.a,id=el.dataset.id,v=q=>$(q).value;
 if(a==='tb'){tab=id;render()}else if(a==='do')add(id);else if(a==='eT'){edit=!edit;render()}
 else if(a==='mm')lm(id);else if(a==='un'){S.logs=S.logs.filter(l=>l.id!==id);save();$('#ts').className=''}
 else if(a==='et')tm(id);else if(a==='nt')tm('',id);
 else if(a==='stk'){const o={name:v('#tn').trim(),sid:v('#tsd'),pt:parseInt(v('#tp'))||1};if(!o.name)return;if(id)Object.assign(S.tasks.find(x=>x.id===id),o);else S.tasks.push({id:uid(),...o});save();cm();render()}
 else if(a==='dt'){S.tasks=S.tasks.filter(x=>x.id!==id);save();cm();render()}
 else if(a==='eh')lm(id);
-else if(a==='sl'){const l=S.logs.find(x=>x.id===id),d=v('#ld');l.memo=v('#lmm').trim();if(d&&d!==l.date){l.date=d;l.ts=new Date(d+'T'+new Date(l.ts).toTimeString().slice(0,8)).getTime()}save();cm();render()}
+else if(a==='sl'){const l=S.logs.find(x=>x.id===id),d=v('#ld');l.memo=v('#lmm').trim();if(d&&d!==l.date){l.date=d;l.ts=new Date(d+'T'+new Date(l.ts).toTimeString().slice(0,8)).getTime()}save();cm();chk();render()}
 else if(a==='dl'){S.logs=S.logs.filter(x=>x.id!==id);save();cm();render()}
 else if(a==='fl'){fil=id||null;render()}
 else if(a==='aS'){const n=v('#ns').trim();if(!n)return;S.stats.push({id:'s'+uid(),name:n,color:COL[S.stats.length%COL.length],hide:false});save();render()}
 else if(a==='ex'){const b=$('#bk');b.value=JSON.stringify(S);b.select();let m='書き出しました。コピーして保存してください。';try{navigator.clipboard.writeText(b.value).then(()=>{$('#bm').textContent='コピーしました。メモアプリなどに保存してください。'},()=>{})}catch(x){}$('#bm').textContent=m}
 else if(a==='im'){try{const o=JSON.parse(v('#bk'));if(!Array.isArray(o.stats)||!Array.isArray(o.logs)||!Array.isArray(o.tasks))throw 0;pend=o;modal(`<h3>読み込み</h3><p>現在のデータを、貼り付けたデータ(ステータス${o.stats.length}・記録${o.logs.length}件)で置き換えます。</p><div class="row"><button class="ghost" data-a="cm">やめる</button><button data-a="iok">置き換える</button></div>`)}catch(x){$('#bm').textContent='読み込めません。書き出したデータをそのまま貼り付けてください。'}}
-else if(a==='iok'){S=pend;save();cm();tab='st';render()}else if(a==='cm')cm()});
-document.addEventListener('change',e=>{const t=e.target;if(t.id==='td'){tdate=t.value;render()}else if(t.dataset.n){const s=stat(t.dataset.n);if(t.value.trim())s.name=t.value.trim();save()}else if(t.dataset.h){stat(t.dataset.h).hide=!t.checked;save()}});
+else if(a==='iok'){S=pend;S.bosses=S.bosses||[];if(S.snd===undefined)S.snd=true;save();cm();tab='st';render()}else if(a==='cm')cm()
+else if(a==='nb')bm('');else if(a==='eb')bm(id);else if(a==='cv')$('#ov').className='';else if(a==='tsn')snd();
+else if(a==='db'){S.bosses=S.bosses.filter(x=>x.id!==id);save();cm();render()}
+else if(a==='sb'){const n=v('#bn').trim(),d=v('#bd'),t=totals(),req=[],w=id&&S.bosses.find(x=>x.id===id).won;let er='';
+$('#md').querySelectorAll('[data-bl]').forEach(i=>{const L=parseInt(i.value);if(!L)return;const q=i.dataset.bl;if(!w&&L<=lv(t[q]))er='目標Lvは、今のLvより高くしてください';else req.push({sid:q,lv:L})});
+if(!n||!d)er=er||'名前と期日を入力してください';else if(!req.length)er=er||'目標を1つ以上入力してください';
+if(er){$('#be').textContent=er;return}
+if(id)Object.assign(S.bosses.find(x=>x.id===id),{name:n,date:d,req});else S.bosses.push({id:uid(),name:n,date:d,req,won:''});save();cm();render()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.id==='td'){tdate=t.value;render()}else if(t.dataset.sn!==undefined){S.snd=t.checked;save()}else if(t.dataset.n){const s=stat(t.dataset.n);if(t.value.trim())s.name=t.value.trim();save()}else if(t.dataset.h){stat(t.dataset.h).hide=!t.checked;save()}});
 render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script></body></html>
